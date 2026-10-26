@@ -1,0 +1,462 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>e-Permitting Status Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header band, toolbar, map with a detail panel beside it (stacked on phones), legend and data notes below */
+:root{
+  --bg:#f5f7f6; --surface:#ffffff; --fg:#17211e; --muted:#5a6863; --line:#d9e1de;
+  --accent:#1d5c4f; --accent-soft:#e3efeb; --ocean:#eaf0ee; --land-empty:#d4dcd9; --land-stroke:#ffffff;
+  --warn-bg:#fff4dc; --warn-fg:#6b4a00;
+  --s-base:#1f7a5c; --s-own:#2f6fae; --s-dev:#d08c1f; --s-paper:#9a7b6a;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",Arial,sans-serif;
+  --mono:"IBM Plex Mono",Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1614; --surface:#162120; --fg:#e4ece9; --muted:#9aaba5; --line:#2a3835;
+  --accent:#6cc3aa; --accent-soft:#1d302b; --ocean:#121c1a; --land-empty:#2c3a37; --land-stroke:#0f1614;
+  --warn-bg:#3a2e12; --warn-fg:#f2d48a;
+  --s-base:#3fae86; --s-own:#5b9bdb; --s-dev:#e3a640; --s-paper:#b49686;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f1614; --surface:#162120; --fg:#e4ece9; --muted:#9aaba5; --line:#2a3835;
+  --accent:#6cc3aa; --accent-soft:#1d302b; --ocean:#121c1a; --land-empty:#2c3a37; --land-stroke:#0f1614;
+  --warn-bg:#3a2e12; --warn-fg:#f2d48a;
+  --s-base:#3fae86; --s-own:#5b9bdb; --s-dev:#e3a640; --s-paper:#b49686;
+  color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;display:grid;gap:18px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(26px,4vw,36px);line-height:1.1;margin:0;text-wrap:balance}
+.lede{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.lang{display:flex;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:2px}
+.lang button{font:500 13px var(--mono);border:0;background:transparent;color:var(--muted);padding:6px 10px;border-radius:4px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.notice{background:var(--warn-bg);color:var(--warn-fg);border-radius:6px;padding:10px 14px;font-size:14px}
+.notice strong{font-weight:600}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.views{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.views button{font:500 14px var(--body);border:0;background:var(--surface);color:var(--fg);padding:7px 14px;cursor:pointer}
+.views button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.search{flex:1 1 200px;min-width:0;max-width:300px}
+.search input{width:100%;font:14px var(--body);padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:7px;font:500 13px var(--body);padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);cursor:pointer}
+.chip[aria-pressed="false"]{opacity:.45}
+.chip .sw{width:11px;height:11px;border-radius:3px;flex:none}
+.chip .n{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+button:focus-visible,input:focus-visible,path.c:focus-visible,th button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:820px){.main{grid-template-columns:minmax(0,1fr)}}
+.mapbox{position:relative;background:var(--ocean);border:1px solid var(--line);border-radius:8px;overflow:hidden;min-width:0}
+.mapbox svg{display:block;width:100%;height:auto;touch-action:none}
+path.c{stroke:var(--land-stroke);stroke-width:.6;vector-effect:non-scaling-stroke;transition:opacity .15s}
+path.c.has{cursor:pointer}
+path.c.dim{opacity:.18}
+path.c.sel{stroke:var(--fg);stroke-width:1.6}
+path.c.hit{stroke:var(--accent);stroke-width:1.6}
+.zoom{position:absolute;right:10px;top:10px;display:grid;gap:4px}
+.zoom button{width:32px;height:32px;font:600 16px var(--body);border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
+.tip{position:absolute;pointer-events:none;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.12);white-space:nowrap}
+.tip b{font-weight:600}
+.maperr{padding:40px 20px;text-align:center;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:12px;min-width:0}
+.panel h2{font-family:var(--display);font-weight:600;font-size:22px;margin:0;line-height:1.15}
+.panel .hint{color:var(--muted);margin:0}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;justify-self:start}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+dt{color:var(--muted)}
+dd{margin:0;font-variant-numeric:tabular-nums}
+.panel .note{font-size:14px;margin:0;border-top:1px solid var(--line);padding-top:10px}
+.tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th button{font:600 12px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:none;border:0;padding:0;cursor:pointer}
+th button[data-dir]::after{content:attr(data-dir);margin-left:4px}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.row{cursor:pointer}
+tr.row:hover td{background:var(--accent-soft)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+.foot{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--display);font-weight:600;font-size:17px;margin:0 0 6px}
+.card p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+pre{font:12.5px/1.55 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto;margin:0 0 8px;color:var(--fg)}
+.copy{font:500 13px var(--body);padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer}
+.disclaimer{font-size:12.5px;color:var(--muted);max-width:90ch;margin:0}
+@media (prefers-reduced-motion:reduce){path.c{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow" data-i="eyebrow"></p>
+      <h1 data-i="title"></h1>
+      <p class="lede" data-i="lede"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" id="lang-en" data-lang="en">EN</button>
+      <button type="button" id="lang-fr" data-lang="fr">FR</button>
+      <button type="button" id="lang-es" data-lang="es">ES</button>
+    </div>
+  </header>
+
+  <div class="notice" role="note"><strong data-i="sampleTitle"></strong> <span data-i="sampleText"></span></div>
+
+  <div class="toolbar">
+    <div class="views" role="group" aria-label="View">
+      <button type="button" id="view-map" data-view="map" data-i="viewMap"></button>
+      <button type="button" id="view-table" data-view="table" data-i="viewTable"></button>
+    </div>
+    <div class="search"><input id="search" type="search" autocomplete="off"></div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="main" id="mapView">
+    <div class="mapbox" id="mapbox">
+      <svg id="map" viewBox="0 0 960 470" role="img"></svg>
+      <div class="zoom">
+        <button type="button" id="zin" aria-label="Zoom in">+</button>
+        <button type="button" id="zout" aria-label="Zoom out">&minus;</button>
+        <button type="button" id="zreset" aria-label="Reset zoom">&#8634;</button>
+      </div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <div class="tablebox" id="tableView" hidden>
+    <table>
+      <thead><tr>
+        <th><button type="button" data-sort="name" data-i="colCountry"></button></th>
+        <th><button type="button" data-sort="status" data-i="colStatus"></button></th>
+        <th><button type="button" data-sort="system" data-i="colSystem"></button></th>
+        <th><button type="button" data-sort="since" data-i="colSince"></button></th>
+        <th><button type="button" data-sort="epix" data-i="colEpix"></button></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="foot">
+    <div class="card">
+      <h3 data-i="dataTitle"></h3>
+      <p data-i="dataText"></p>
+      <pre id="csvSample"></pre>
+      <button type="button" class="copy" id="copyCsv" data-i="copy"></button>
+    </div>
+    <div class="card">
+      <h3 data-i="aboutTitle"></h3>
+      <p data-i="aboutText1"></p>
+      <p data-i="aboutText2"></p>
+    </div>
+  </div>
+
+  <p class="disclaimer" data-i="disclaimer"></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datamaps@0.5.9/dist/datamaps.world.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ---- Map data file (in Drupal this would be an uploaded CSV or a Views JSON feed) ---- */
+var CSV = [
+"iso3,status,system,since,epix,note",
+"CHE,BASE,eCITES BaseSolution,2021,yes,Sample note: permits issued and exchanged electronically with trading partners.",
+"FRA,OWN,National system,2017,yes,Sample note: national system connected to the EU TRACES platform.",
+"DEU,OWN,National system,2016,yes,Sample note: national system connected to the EU TRACES platform.",
+"ESP,OWN,National system,2018,yes,",
+"ITA,OWN,National system,2019,no,",
+"GBR,OWN,National system,2020,yes,",
+"ROU,DEV,eCITES BaseSolution,,no,Sample note: implementation started; pilot planned.",
+"ALB,PAPER,,,no,",
+"USA,OWN,National system,2015,no,",
+"CAN,OWN,National system,2019,no,",
+"MEX,DEV,National system,,no,",
+"BRA,OWN,National system,2014,no,",
+"PER,DEV,eCITES BaseSolution,,no,",
+"COL,PAPER,,,no,",
+"ARG,PAPER,,,no,",
+"CHN,OWN,National system,2018,no,",
+"JPN,OWN,National system,2020,no,",
+"IND,DEV,National system,,no,",
+"IDN,BASE,eCITES BaseSolution,2023,no,",
+"MYS,DEV,eCITES BaseSolution,,no,",
+"THA,BASE,eCITES BaseSolution,2024,no,",
+"AUS,OWN,National system,2016,no,",
+"NZL,OWN,National system,2018,no,",
+"ZAF,DEV,National system,,no,",
+"KEN,BASE,eCITES BaseSolution,2025,no,",
+"TZA,PAPER,,,no,",
+"MDG,BASE,eCITES BaseSolution,2024,no,",
+"NGA,PAPER,,,no,",
+"MAR,DEV,eCITES BaseSolution,,no,",
+"EGY,PAPER,,,no,",
+"SEN,DEV,eCITES BaseSolution,,no,"
+].join("\n");
+
+var ISO2 = {"AAA":"AA","ASC":"AC","AND":"AD","ARE":"AE","AFG":"AF","ATG":"AG","AIA":"AI","ALB":"AL","ARM":"AM","AGO":"AO","ATA":"AQ","ARG":"AR","ASM":"AS","AUT":"AT","AUS":"AU","ABW":"AW","ALA":"AX","AZE":"AZ","BIH":"BA","BRB":"BB","BGD":"BD","BEL":"BE","BFA":"BF","BGR":"BG","BHR":"BH","BDI":"BI","BEN":"BJ","BLM":"BL","BMU":"BM","BRN":"BN","BOL":"BO","BES":"BQ","BRA":"BR","BHS":"BS","BTN":"BT","BUR":"MM","BVT":"BV","BWA":"BW","BLR":"BY","BLZ":"BZ","CAN":"CA","CCK":"CC","COD":"CD","CAF":"CF","COG":"CG","CHE":"CH","CIV":"CI","COK":"CK","CHL":"CL","CMR":"CM","CHN":"CN","COL":"CO","CPT":"CP","CRI":"CR","CUB":"CU","CPV":"CV","CUW":"CW","CXR":"CX","CYP":"CY","CZE":"CZ","DDR":"DE","DEU":"DE","DGA":"DG","DJI":"DJ","DNK":"DK","DMA":"DM","DOM":"DO","DZA":"DZ","ECU":"EC","EST":"EE","EGY":"EG","ESH":"EH","ERI":"ER","ESP":"ES","ETH":"ET","FIN":"FI","FJI":"FJ","FLK":"FK","FSM":"FM","FRO":"FO","FRA":"FR","FXX":"FR","GAB":"GA","GBR":"GB","GRD":"GD","GEO":"GE","GUF":"GF","GGY":"GG","GHA":"GH","GIB":"GI","GRL":"GL","GMB":"GM","GIN":"GN","GLP":"GP","GNQ":"GQ","GRC":"GR","SGS":"GS","GTM":"GT","GUM":"GU","GNB":"GW","GUY":"GY","HKG":"HK","HMD":"HM","HND":"HN","HRV":"HR","HTI":"HT","HUN":"HU","IDN":"ID","IRL":"IE","ISR":"IL","IMN":"IM","IND":"IN","IOT":"IO","IRQ":"IQ","IRN":"IR","ISL":"IS","ITA":"IT","JEY":"JE","JAM":"JM","JOR":"JO","JPN":"JP","KEN":"KE","KGZ":"KG","KHM":"KH","KIR":"KI","COM":"KM","KNA":"KN","PRK":"KP","KOR":"KR","KWT":"KW","CYM":"KY","KAZ":"KZ","LAO":"LA","LBN":"LB","LCA":"LC","LIE":"LI","LKA":"LK","LBR":"LR","LSO":"LS","LTU":"LT","LUX":"LU","LVA":"LV","LBY":"LY","MAR":"MA","MCO":"MC","MDA":"MD","MNE":"ME","MAF":"MF","MDG":"MG","MHL":"MH","MKD":"MK","MLI":"ML","MMR":"MM","MNG":"MN","MAC":"MO","MNP":"MP","MTQ":"MQ","MRT":"MR","MSR":"MS","MLT":"MT","MUS":"MU","MDV":"MV","MWI":"MW","MEX":"MX","MYS":"MY","MOZ":"MZ","NAM":"NA","NCL":"NC","NER":"NE","NFK":"NF","NGA":"NG","NIC":"NI","NLD":"NL","NOR":"NO","NPL":"NP","NRU":"NR","NIU":"NU","NZL":"NZ","OMN":"OM","PAN":"PA","PER":"PE","PYF":"PF","PNG":"PG","PHL":"PH","PAK":"PK","POL":"PL","SPM":"PM","PCN":"PN","PRI":"PR","PSE":"PS","PRT":"PT","PLW":"PW","PRY":"PY","QAT":"QA","QMM":"QM","QNN":"QN","QPP":"QP","QQQ":"QQ","QRR":"QR","QSS":"QS","QTT":"QT","QUU":"EU","QVV":"QV","QWW":"QW","QXX":"QX","QYY":"QY","QZZ":"QZ","REU":"RE","ROU":"RO","SRB":"RS","RUS":"RU","RWA":"RW","SAU":"SA","SLB":"SB","SYC":"SC","SDN":"SD","SWE":"SE","SGP":"SG","SHN":"SH","SVN":"SI","SJM":"SJ","SVK":"SK","SLE":"SL","SMR":"SM","SEN":"SN","SOM":"SO","SUR":"SR","SSD":"SS","STP":"ST","SLV":"SV","SXM":"SX","SYR":"SY","SWZ":"SZ","TAA":"TA","TCA":"TC","TCD":"TD","ATF":"TF","TGO":"TG","THA":"TH","TJK":"TJ","TKL":"TK","TLS":"TL","TKM":"TM","TUN":"TN","TON":"TO","TMP":"TL","TUR":"TR","TTO":"TT","TUV":"TV","TWN":"TW","TZA":"TZ","UKR":"UA","UGA":"UG","UMI":"UM","USA":"US","URY":"UY","UZB":"UZ","VAT":"VA","VCT":"VC","VEN":"VE","VGB":"VG","VIR":"VI","VNM":"VN","VUT":"VU","WLF":"WF","WSM":"WS","XAA":"XA","XBB":"XB","XCC":"XC","XDD":"XD","XEE":"XE","XFF":"XF","XGG":"XG","XHH":"XH","XII":"XI","XJJ":"XJ","XKK":"XK","XLL":"XL","XMM":"XM","XNN":"XN","XOO":"XO","XPP":"XP","XQQ":"XQ","XRR":"XR","XSS":"XS","XTT":"XT","XUU":"XU","XVV":"XV","XWW":"XW","XXX":"XX","XYY":"XY","XZZ":"XZ","YMD":"YE","YEM":"YE","MYT":"YT","ZAF":"ZA","ZMB":"ZM","ZAR":"CD","ZWE":"ZW","ZZZ":"ZZ"};
+var STATUS_ORDER = ["BASE","OWN","DEV","PAPER"];
+var STATUS_VAR = {BASE:"--s-base",OWN:"--s-own",DEV:"--s-dev",PAPER:"--s-paper"};
+
+var T = {
+ en:{eyebrow:"CITES e-permitting",title:"e-Permitting Status Map",
+  lede:"Which Parties issue CITES permits and certificates electronically, and which system they use. Select a country for details.",
+  sampleTitle:"Prototype with sample data.",sampleText:"The statuses shown are invented for demonstration and are not actual Party information.",
+  viewMap:"Map",viewTable:"Table",search:"Search country",
+  s_BASE:"eCITES BaseSolution",s_OWN:"National electronic system",s_DEV:"Electronic system in development",s_PAPER:"Paper-based permits",s_NONE:"No information",
+  colCountry:"Country",colStatus:"Status",colSystem:"System",colSince:"Since",colEpix:"EPIX",
+  pickTitle:"Select a country",pickHint:"Click a coloured country on the map or a row in the table to see its e-permitting details.",
+  system:"System",since:"Operational since",epix:"Exchanges via EPIX",yes:"Yes",no:"No",none:"—",
+  noInfo:"No e-permitting information has been recorded for this country.",
+  dataTitle:"How the map is fed",dataText:"Each map reads one data file with one row per country, keyed by ISO3 code. Staff update the file; the map redraws. The same format can drive other maps on the site.",
+  copy:"Copy sample data",copied:"Copied",copyFail:"Select the text above and copy it",
+  aboutTitle:"About this prototype",
+  aboutText1:"Version 1 of a reusable map component for the website. Status categories, colours and fields are placeholders for the Secretariat to confirm.",
+  aboutText2:"The table view offers the same information for screen readers and keyboard users. Boundaries are a low-resolution open dataset and will be replaced with UN-cleared boundaries before publication.",
+  disclaimer:"The boundaries and names shown and the designations used on this map do not imply official endorsement or acceptance by the United Nations.",
+  mapErr:"The map boundaries could not be loaded. The table view shows the same information.",
+  mapLabel:"World map of e-permitting status by country",count:"{n} countries"},
+ fr:{eyebrow:"Permis électroniques CITES",title:"Carte des permis électroniques",
+  lede:"Quelles Parties délivrent des permis et certificats CITES électroniques, et avec quel système. Sélectionnez un pays pour voir les détails.",
+  sampleTitle:"Prototype avec données fictives.",sampleText:"Les statuts affichés sont inventés à des fins de démonstration et ne reflètent pas la situation réelle des Parties.",
+  viewMap:"Carte",viewTable:"Tableau",search:"Rechercher un pays",
+  s_BASE:"eCITES BaseSolution",s_OWN:"Système électronique national",s_DEV:"Système électronique en cours",s_PAPER:"Permis papier",s_NONE:"Aucune information",
+  colCountry:"Pays",colStatus:"Statut",colSystem:"Système",colSince:"Depuis",colEpix:"EPIX",
+  pickTitle:"Sélectionnez un pays",pickHint:"Cliquez sur un pays coloré ou sur une ligne du tableau pour voir les détails.",
+  system:"Système",since:"Opérationnel depuis",epix:"Échanges via EPIX",yes:"Oui",no:"Non",none:"—",
+  noInfo:"Aucune information sur les permis électroniques n'est enregistrée pour ce pays.",
+  dataTitle:"Source des données",dataText:"Chaque carte lit un fichier de données, une ligne par pays, identifiée par le code ISO3. Le personnel met à jour le fichier et la carte se redessine.",
+  copy:"Copier les données d'exemple",copied:"Copié",copyFail:"Sélectionnez le texte ci-dessus pour le copier",
+  aboutTitle:"À propos de ce prototype",
+  aboutText1:"Version 1 d'un composant cartographique réutilisable pour le site. Les catégories, couleurs et champs sont provisoires et à confirmer par le Secrétariat.",
+  aboutText2:"La vue tableau présente les mêmes informations pour les lecteurs d'écran et la navigation au clavier. Les frontières seront remplacées par des frontières validées par l'ONU avant publication.",
+  disclaimer:"Les frontières et les noms indiqués et les désignations employées sur cette carte n'impliquent pas reconnaissance ou acceptation officielle de la part de l'Organisation des Nations Unies.",
+  mapErr:"Les frontières n'ont pas pu être chargées. La vue tableau présente les mêmes informations.",
+  mapLabel:"Carte mondiale du statut des permis électroniques par pays",count:"{n} pays"},
+ es:{eyebrow:"Permisos electrónicos CITES",title:"Mapa de permisos electrónicos",
+  lede:"Qué Partes emiten permisos y certificados CITES electrónicos y con qué sistema. Seleccione un país para ver los detalles.",
+  sampleTitle:"Prototipo con datos de ejemplo.",sampleText:"Los estados mostrados son inventados para la demostración y no reflejan la situación real de las Partes.",
+  viewMap:"Mapa",viewTable:"Tabla",search:"Buscar país",
+  s_BASE:"eCITES BaseSolution",s_OWN:"Sistema electrónico nacional",s_DEV:"Sistema electrónico en desarrollo",s_PAPER:"Permisos en papel",s_NONE:"Sin información",
+  colCountry:"País",colStatus:"Estado",colSystem:"Sistema",colSince:"Desde",colEpix:"EPIX",
+  pickTitle:"Seleccione un país",pickHint:"Haga clic en un país coloreado o en una fila de la tabla para ver los detalles.",
+  system:"Sistema",since:"Operativo desde",epix:"Intercambio vía EPIX",yes:"Sí",no:"No",none:"—",
+  noInfo:"No hay información registrada sobre permisos electrónicos para este país.",
+  dataTitle:"Origen de los datos",dataText:"Cada mapa lee un archivo de datos con una fila por país, identificada por el código ISO3. El personal actualiza el archivo y el mapa se vuelve a dibujar.",
+  copy:"Copiar datos de ejemplo",copied:"Copiado",copyFail:"Seleccione el texto de arriba para copiarlo",
+  aboutTitle:"Acerca de este prototipo",
+  aboutText1:"Versión 1 de un componente de mapa reutilizable para el sitio web. Las categorías, colores y campos son provisionales y debe confirmarlos la Secretaría.",
+  aboutText2:"La vista de tabla ofrece la misma información para lectores de pantalla y navegación con teclado. Las fronteras se sustituirán por fronteras aprobadas por la ONU antes de la publicación.",
+  disclaimer:"Las fronteras y los nombres que figuran en este mapa y las denominaciones utilizadas en él no implican su apoyo o aceptación oficial por las Naciones Unidas.",
+  mapErr:"No se pudieron cargar las fronteras. La vista de tabla muestra la misma información.",
+  mapLabel:"Mapa mundial del estado de los permisos electrónicos por país",count:"{n} países"}
+};
+
+/* ---- state ---- */
+var state = {lang:"en", view:"map", active:new Set(STATUS_ORDER), q:"", sel:null, sortKey:"name", sortDir:1};
+try{ var L=localStorage.getItem("epmap-lang"); if(T[L]) state.lang=L; }catch(e){}
+
+function parseCSV(text){
+  var lines=text.trim().split(/\r?\n/), head=lines.shift().split(",");
+  return lines.map(function(line){
+    var parts=line.split(","), o={};
+    head.forEach(function(h,i){ o[h]= i===head.length-1 ? parts.slice(i).join(",") : (parts[i]||""); });
+    return o;
+  });
+}
+var rows = parseCSV(CSV);
+var byIso = {}; rows.forEach(function(r){ byIso[r.iso3]=r; });
+
+var topoNames = {};
+function t(k){ return (T[state.lang][k]!==undefined) ? T[state.lang][k] : T.en[k]; }
+var dn = {};
+function cname(iso3){
+  var iso2 = ISO2[iso3];
+  if(iso2 && typeof Intl!=="undefined" && Intl.DisplayNames){
+    try{ dn[state.lang]=dn[state.lang]||new Intl.DisplayNames([state.lang],{type:"region"}); var n=dn[state.lang].of(iso2); if(n && n!==iso2) return n; }catch(e){}
+  }
+  return topoNames[iso3] || iso3;
+}
+function color(status){ return status && STATUS_VAR[status] ? "var("+STATUS_VAR[status]+")" : "var(--land-empty)"; }
+function matches(r){
+  if(!r) return false;
+  if(!state.active.has(r.status)) return false;
+  if(state.q){ var n=cname(r.iso3).toLowerCase(); if(n.indexOf(state.q)<0 && r.iso3.toLowerCase()!==state.q) return false; }
+  return true;
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+
+/* ---- text ---- */
+function applyText(){
+  document.documentElement.lang = state.lang;
+  document.querySelectorAll("[data-i]").forEach(function(el){ el.textContent=t(el.getAttribute("data-i")); });
+  document.getElementById("search").placeholder=t("search");
+  document.getElementById("search").setAttribute("aria-label",t("search"));
+  document.getElementById("map").setAttribute("aria-label",t("mapLabel"));
+  document.querySelectorAll(".lang button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.lang===state.lang)); });
+  document.getElementById("csvSample").textContent = CSV.split("\n").slice(0,6).join("\n")+"\n…";
+}
+
+/* ---- chips ---- */
+function renderChips(){
+  var box=document.getElementById("chips"); box.innerHTML="";
+  STATUS_ORDER.forEach(function(s){
+    var n=rows.filter(function(r){return r.status===s;}).length;
+    var b=document.createElement("button");
+    b.type="button"; b.className="chip"; b.id="chip-"+s;
+    b.setAttribute("aria-pressed", String(state.active.has(s)));
+    b.innerHTML='<span class="sw" style="background:'+color(s)+'"></span>'+esc(t("s_"+s))+' <span class="n">'+n+'</span>';
+    b.addEventListener("click",function(){
+      if(state.active.has(s)) state.active.delete(s); else state.active.add(s);
+      if(state.active.size===0) STATUS_ORDER.forEach(function(x){state.active.add(x);});
+      renderChips(); refresh();
+    });
+    box.appendChild(b);
+  });
+}
+
+/* ---- panel ---- */
+function renderPanel(){
+  var p=document.getElementById("panel"), iso=state.sel;
+  if(!iso){ p.innerHTML='<h2>'+esc(t("pickTitle"))+'</h2><p class="hint">'+esc(t("pickHint"))+'</p>'; return; }
+  var r=byIso[iso], html='<h2>'+esc(cname(iso))+'</h2>';
+  if(!r){ html+='<span class="pill" style="background:var(--muted)">'+esc(t("s_NONE"))+'</span><p class="hint">'+esc(t("noInfo"))+'</p>'; p.innerHTML=html; return; }
+  html+='<span class="pill" style="background:'+color(r.status)+'">'+esc(t("s_"+r.status))+'</span>';
+  html+='<dl><dt>'+esc(t("system"))+'</dt><dd>'+esc(r.system||t("none"))+'</dd>';
+  html+='<dt>'+esc(t("since"))+'</dt><dd>'+esc(r.since||t("none"))+'</dd>';
+  html+='<dt>'+esc(t("epix"))+'</dt><dd>'+esc(r.epix==="yes"?t("yes"):t("no"))+'</dd></dl>';
+  if(r.note) html+='<p class="note">'+esc(r.note)+'</p>';
+  p.innerHTML=html;
+}
+
+/* ---- table ---- */
+function renderTable(){
+  var tb=document.getElementById("tbody");
+  var list=rows.filter(matches).map(function(r){ return {r:r,name:cname(r.iso3),status:STATUS_ORDER.indexOf(r.status),system:r.system,since:r.since,epix:r.epix}; });
+  var k=state.sortKey, d=state.sortDir;
+  list.sort(function(a,b){ var x=a[k],y=b[k]; if(x===y) return a.name.localeCompare(b.name,state.lang); if(x===""||x===undefined) return 1; if(y===""||y===undefined) return -1; return (typeof x==="number"? x-y : String(x).localeCompare(String(y),state.lang))*d; });
+  tb.innerHTML=list.map(function(o){
+    var r=o.r;
+    return '<tr class="row" tabindex="0" data-iso="'+r.iso3+'"><td>'+esc(o.name)+'</td><td><span class="dot" style="background:'+color(r.status)+'"></span>'+esc(t("s_"+r.status))+'</td><td>'+esc(r.system||t("none"))+'</td><td class="num">'+esc(r.since||t("none"))+'</td><td>'+esc(r.epix==="yes"?t("yes"):t("no"))+'</td></tr>';
+  }).join("");
+  document.querySelectorAll("th button").forEach(function(b){ if(b.dataset.sort===k) b.setAttribute("data-dir", d>0?"↑":"↓"); else b.removeAttribute("data-dir"); });
+}
+document.getElementById("tbody").addEventListener("click",function(e){ var tr=e.target.closest("tr.row"); if(tr){ select(tr.dataset.iso); setView(paths?"map":"table"); } });
+document.getElementById("tbody").addEventListener("keydown",function(e){ if(e.key==="Enter"){ var tr=e.target.closest("tr.row"); if(tr){ select(tr.dataset.iso); setView(paths?"map":"table"); } } });
+document.querySelectorAll("th button").forEach(function(b){ b.addEventListener("click",function(){ if(state.sortKey===b.dataset.sort) state.sortDir*=-1; else {state.sortKey=b.dataset.sort; state.sortDir=1;} renderTable(); }); });
+
+/* ---- map ---- */
+var paths=null, zoom=null, svgSel=null, gSel=null, pathGen=null, features=[];
+function decodeTopo(topo, objName){
+  var tr=topo.transform, arcs=topo.arcs.map(function(arc){
+    var x=0,y=0; return arc.map(function(p){
+      if(tr){ x+=p[0]; y+=p[1]; return [x*tr.scale[0]+tr.translate[0], y*tr.scale[1]+tr.translate[1]]; }
+      return [p[0],p[1]];
+    });
+  });
+  function arc(i){ var a = i<0 ? arcs[~i].slice().reverse() : arcs[i].slice(); return a; }
+  function ring(ids){ var pts=[]; ids.forEach(function(i,k){ var a=arc(i); if(k>0) a.shift(); pts=pts.concat(a); }); return pts; }
+  function poly(rs){ return rs.map(ring); }
+  return topo.objects[objName].geometries.map(function(g){
+    var geom=null;
+    if(g.type==="Polygon") geom={type:"Polygon",coordinates:poly(g.arcs)};
+    else if(g.type==="MultiPolygon") geom={type:"MultiPolygon",coordinates:g.arcs.map(poly)};
+    return {type:"Feature",id:g.id,properties:g.properties||{},geometry:geom};
+  }).filter(function(f){ return f.geometry; });
+}
+function initMap(){
+  var box=document.getElementById("mapbox");
+  try{
+    if(!window.d3 || !window.Datamap || !Datamap.prototype.worldTopo) throw new Error("no lib");
+    var topo=Datamap.prototype.worldTopo, objName=Object.keys(topo.objects)[0];
+    features=decodeTopo(topo,objName).filter(function(f){ return f.id!=="ATA"; });
+    features.forEach(function(f){ if(f.properties && f.properties.name) topoNames[f.id]=f.properties.name; });
+  }catch(e){
+    box.innerHTML='<div class="maperr">'+esc(t("mapErr"))+'</div>';
+    return false;
+  }
+  var W=960,H=470;
+  var proj=d3.geoNaturalEarth1().fitExtent([[8,8],[W-8,H-8]],{type:"FeatureCollection",features:features});
+  pathGen=d3.geoPath(proj);
+  svgSel=d3.select("#map");
+  gSel=svgSel.append("g");
+  var tip=document.getElementById("tip");
+  paths=gSel.selectAll("path").data(features).join("path")
+    .attr("class",function(f){ return "c"+(byIso[f.id]?" has":""); })
+    .attr("d",pathGen)
+    .attr("tabindex",function(f){ return byIso[f.id]?0:null; })
+    .attr("role",function(f){ return byIso[f.id]?"button":null; })
+    .on("mousemove",function(ev,f){
+      var r=byIso[f.id], rect=box.getBoundingClientRect();
+      tip.innerHTML='<b>'+esc(cname(f.id))+'</b><br>'+esc(r?t("s_"+r.status):t("s_NONE"));
+      tip.hidden=false;
+      var x=ev.clientX-rect.left+12, y=ev.clientY-rect.top+12;
+      if(x+tip.offsetWidth>rect.width-4) x=ev.clientX-rect.left-tip.offsetWidth-12;
+      if(y+tip.offsetHeight>rect.height-4) y=ev.clientY-rect.top-tip.offsetHeight-12;
+      tip.style.left=x+"px"; tip.style.top=y+"px";
+    })
+    .on("mouseleave",function(){ tip.hidden=true; })
+    .on("click",function(ev,f){ select(f.id); })
+    .on("keydown",function(ev,f){ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); select(f.id); } });
+  zoom=d3.zoom().scaleExtent([1,8]).translateExtent([[0,0],[W,H]]).on("zoom",function(ev){ gSel.attr("transform",ev.transform); tip.hidden=true; });
+  svgSel.call(zoom).on("dblclick.zoom",null);
+  document.getElementById("zin").onclick=function(){ svgSel.transition().duration(250).call(zoom.scaleBy,1.6); };
+  document.getElementById("zout").onclick=function(){ svgSel.transition().duration(250).call(zoom.scaleBy,1/1.6); };
+  document.getElementById("zreset").onclick=function(){ svgSel.transition().duration(250).call(zoom.transform,d3.zoomIdentity); };
+  return true;
+}
+function styleMap(){
+  if(!paths) return;
+  paths.attr("fill",function(f){ var r=byIso[f.id]; return r ? color(r.status) : "var(--land-empty)"; })
+    .classed("dim",function(f){ var r=byIso[f.id]; if(!r) return !!state.q; return !matches(r); })
+    .classed("hit",function(f){ return !!state.q && matches(byIso[f.id]); })
+    .classed("sel",function(f){ return f.id===state.sel; })
+    .attr("aria-label",function(f){ var r=byIso[f.id]; return r? cname(f.id)+": "+t("s_"+r.status) : null; });
+  paths.filter(function(f){ return f.id===state.sel; }).raise();
+}
+
+function select(iso){ state.sel=iso; renderPanel(); styleMap(); }
+function setView(v){
+  state.view=v;
+  document.getElementById("mapView").hidden = v!=="map";
+  document.getElementById("tableView").hidden = v!=="table";
+  document.querySelectorAll(".views button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.view===v)); });
+}
+function refresh(){ styleMap(); renderTable(); }
+
+document.querySelectorAll(".views button").forEach(function(b){ b.addEventListener("click",function(){ setView(b.dataset.view); }); });
+document.querySelectorAll(".lang button").forEach(function(b){ b.addEventListener("click",function(){
+  state.lang=b.dataset.lang; try{ localStorage.setItem("epmap-lang",state.lang); }catch(e){}
+  applyText(); renderChips(); renderPanel(); refresh();
+}); });
+document.getElementById("search").addEventListener("input",function(e){ state.q=e.target.value.trim().toLowerCase(); refresh(); });
+document.getElementById("search").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){ var hit=rows.filter(matches)[0]; if(hit) select(hit.iso3); }
+});
+document.getElementById("copyCsv").addEventListener("click",function(){
+  var btn=this;
+  function done(ok){ btn.textContent= ok? t("copied") : t("copyFail"); setTimeout(function(){ btn.textContent=t("copy"); },1800); }
+  try{ navigator.clipboard.writeText(CSV).then(function(){done(true);},function(){ selectPre(); done(false); }); }
+  catch(e){ selectPre(); done(false); }
+});
+function selectPre(){ var pre=document.getElementById("csvSample"); var r=document.createRange(); r.selectNodeContents(pre); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+applyText();
+renderChips();
+var ok=initMap();
+renderPanel();
+setView(ok? "map" : "table");
+if(!ok){ document.getElementById("view-map").disabled=true; }
+refresh();
+})();
+</script>
+
+</body></html>
